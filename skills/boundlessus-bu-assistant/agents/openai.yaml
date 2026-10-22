@@ -1,0 +1,7 @@
+interface:
+  display_name: "BU 小助手"
+  short_description: "面向大学生志愿者的 BoundlessUs 支教支持与安全引导智能体"
+  default_prompt: "Use $boundlessus-bu-assistant primarily to support university student and youth volunteers with BoundlessUs teaching and public-welfare education tasks, while preserving child-safety boundaries."
+
+policy:
+  allow_implicit_invocation: true

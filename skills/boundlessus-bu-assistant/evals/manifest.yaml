@@ -1,0 +1,9 @@
+name: boundlessus-bu-assistant
+version: 0.5.0
+dataset: cases.jsonl
+manual_source: launch-tests-source.md
+grading: grading-rubric.md
+run_template: host-run-template.md
+platform_adapter: ../references/qingxiaoda-adapter.md
+mode: curated
+notes: 第二阶段加入课程、活动、复盘和资源入库资料及 4 条回归案例；需要固定模型、Skill 版本、检索结果和宿主能力；无真实运行条件时仅标记为 dry_run。
