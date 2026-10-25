@@ -42,11 +42,11 @@ async def chat_stream(payload: ChatRequest, request: Request) -> StreamingRespon
     async def generate():
         yield event("session", {"session_id": session_id})
         try:
-            # Buffer then validate before emitting. This is always safe and is mandatory for risk/privacy.
-            result = await request.app.state.agent.chat(session_id, payload.message, payload.capabilities)
-            for i in range(0, len(result.answer), 24):
-                yield event("delta", {"text": result.answer[i : i + 24]})
-            yield event("done", {"metadata": _metadata(request, result)})
+            async for kind, value in request.app.state.agent.stream_chat(session_id, payload.message, payload.capabilities):
+                if kind == "delta":
+                    yield event("delta", {"text": value})
+                else:
+                    yield event("done", {"metadata": _metadata(request, value)})
         except Exception:  # noqa: BLE001 - SSE must convert provider failures into a safe event.
             yield event("error", {"code": "generation_failed", "message": "生成失败，请稍后重试。"})
 
