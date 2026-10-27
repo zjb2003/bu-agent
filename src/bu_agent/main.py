@@ -12,6 +12,7 @@ from bu_agent.providers.null_knowledge import NullKnowledgeProvider
 from bu_agent.providers.openai_compatible import OpenAICompatibleProvider
 from bu_agent.runtime.agent import BUAgent
 from bu_agent.runtime.evidence_router import EvidenceRouter
+from bu_agent.runtime.scope_router import ScopeRouter
 from bu_agent.sessions.memory import MemoryConversationStore
 from bu_agent.skills.loader import SkillLoader
 
@@ -25,7 +26,7 @@ def create_app(settings: Settings | None = None, *, llm=None, knowledge=None) ->
     if llm is None:
         settings.validate_provider()
         llm = OpenAICompatibleProvider(api_key=settings.api_key, base_url=settings.base_url, model=settings.model, api_mode=settings.api_mode, timeout=settings.request_timeout_seconds, max_retries=settings.max_retries)
-    agent = BUAgent(llm=llm, loader=loader, store=store, evidence_router=EvidenceRouter(knowledge))
+    agent = BUAgent(llm=llm, loader=loader, store=store, evidence_router=EvidenceRouter(knowledge), scope_router=ScopeRouter(classifier=llm))
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

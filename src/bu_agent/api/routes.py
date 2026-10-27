@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 
 from fastapi import APIRouter, Request
@@ -9,6 +10,7 @@ from bu_agent.api.schemas import ChatRequest, ChatResponse
 from bu_agent.api.sse import event
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _metadata(request: Request, result) -> dict | None:
@@ -45,12 +47,15 @@ async def chat_stream(payload: ChatRequest, request: Request) -> StreamingRespon
             async for kind, value in request.app.state.agent.stream_chat(session_id, payload.message, payload.capabilities):
                 if kind == "delta":
                     yield event("delta", {"text": value})
+                elif kind == "replace":
+                    yield event("replace", {"text": value})
                 else:
                     yield event("done", {"metadata": _metadata(request, value)})
-        except Exception:  # noqa: BLE001 - SSE must convert provider failures into a safe event.
+        except Exception as exc:  # noqa: BLE001 - SSE must convert provider failures into a safe event.
+            logger.warning("stream generation failed: %s", type(exc).__name__)
             yield event("error", {"code": "generation_failed", "message": "生成失败，请稍后重试。"})
 
-    return StreamingResponse(generate(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
+    return StreamingResponse(generate(), media_type="text/event-stream", headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no", "Connection": "keep-alive"})
 
 
 @router.delete("/v1/sessions/{session_id}")

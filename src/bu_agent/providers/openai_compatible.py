@@ -32,6 +32,8 @@ class OpenAICompatibleProvider:
         if self.api_mode == "chat_completions":
             stream = await self.client.chat.completions.create(model=self.model, messages=messages, temperature=request.temperature, stream=True)
             async for chunk in stream:
+                if not chunk.choices:
+                    continue
                 delta = chunk.choices[0].delta.content or ""
                 if delta:
                     yield LLMEvent(delta=delta)

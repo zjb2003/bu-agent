@@ -44,11 +44,11 @@ class BUAgent:
 
     async def _prepare(self, session_id: str, message: str, capabilities: RuntimeCapabilities) -> PreparedTurn:
         safety = await self.safety_gate.assess(message)
-        route = await self.scope_router.route(message)
+        history = await self.store.get(session_id)
+        route = await self.scope_router.route(message, history)
         if safety.risk == "high" or safety.privacy_detected:
             route.in_scope, route.task_mode = True, "child_safety"
             route.reference_keys = ["child_safety", "routing", "runtime"]
-        history = await self.store.get(session_id)
         if not route.in_scope:
             return PreparedTurn(
                 route=route,
@@ -117,7 +117,12 @@ class BUAgent:
         answer = "".join(parts)
         check = self.validator.validate(answer, safety=prepared.safety, evidence=prepared.evidence.state, capabilities=capabilities, input_pii=detect_pii(message))
         if not check.valid:
-            raise ValueError("stream_output_validation_failed:" + ",".join(check.codes))
+            assert prepared.skill is not None
+            retry = self.prompt_builder.build(skill=prepared.skill, route=prepared.route, safety=prepared.safety, evidence=prepared.evidence, capabilities=capabilities, history=prepared.history, user_message=message, correction="上次输出未通过检查：" + ",".join(check.codes) + "。请修正且不要复述敏感输入。")
+            second = await self.llm.complete(retry)
+            check2 = self.validator.validate(second.text, safety=prepared.safety, evidence=prepared.evidence.state, capabilities=capabilities, input_pii=detect_pii(message))
+            answer = second.text if check2.valid else self._fallback(prepared.safety)
+            yield "replace", answer
         await self.store.append(session_id, [Message(role="user", content=message), Message(role="assistant", content=answer)])
         yield "done", self._result(prepared, answer)
 

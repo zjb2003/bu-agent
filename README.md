@@ -70,8 +70,8 @@ curl -N -X POST http://127.0.0.1:8000/v1/chat/stream -H "Content-Type: applicati
 `API_MODE=responses` 使用官方 SDK 的 Responses 接口；若服务商不支持，会返回明确兼容性错误，
 应切回 `chat_completions`。适配器只发送保守参数，不依赖 tool calling 或 JSON Schema。
 
-流式端点为确保输出验证生效，会先缓冲完整模型输出再发送 SSE；高风险、隐私和重写场景因此
-不会把未经验证的 token 直接暴露给客户端。
+流式端点对低风险普通提问逐段发送模型输出；高风险或隐私相关请求会先完成验证再发送，
+因此这类请求首字可能等待更久。部署时反向代理也必须关闭响应缓冲。
 
 ## 测试
 
